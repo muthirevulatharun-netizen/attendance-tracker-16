@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <p>Daily snapshot by timetable periods</p>
+</div>
+<div class="cards-grid">
+  <div class="card">
+    <h3>Total Periods</h3>
+    <div class="stat">{{ summary.total_slots }}</div>
+  </div>
+  <div class="card">
+    <h3>Today Present</h3>
+    <div class="stat" style="color: var(--success)">{{ summary.present }}</div>
+  </div>
+  <div class="card">
+    <h3>Today Absent</h3>
+    <div class="stat" style="color: var(--danger)">{{ summary.absent }}</div>
+  </div>
+  <div class="card">
+    <h3>Attendance %</h3>
+    <div class="stat">{{ summary.percentage }}%</div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top: 20px">
+  <div class="toolbar">
+    <div>
+      <h3 style="margin: 0">Attendance Summary</h3>
+      <p class="muted" style="margin: 4px 0 0">Date: {{ summary.date }} ({{ summary.weekday }})</p>
+    </div>
+    <div class="chip"><i class="fa-solid fa-chart-line"></i> Chart placeholder</div>
+  </div>
+  <div class="muted">Integrate Chart.js here to render attendance trend.</div>
+</div>
+{% endblock %}
+

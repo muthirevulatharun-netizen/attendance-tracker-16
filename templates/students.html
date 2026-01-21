@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Students</h1>
+  <p>Add and manage student records</p>
+</div>
+<div class="panel">
+  <h3>Add Student</h3>
+  <form method="post" class="form inline-form">
+    <div class="field">
+      <label>Name</label>
+      <input type="text" name="name" placeholder="Student Name" required />
+    </div>
+    <div class="field">
+      <label>Roll No</label>
+      <input type="text" name="roll_no" placeholder="e.g. 101" required />
+    </div>
+    <div class="field">
+      <label>Class</label>
+      <input type="text" name="clazz" placeholder="e.g. CSE" required />
+    </div>
+    <div class="field" style="align-self: end">
+      <button type="submit" class="btn-primary">Add Student</button>
+    </div>
+  </form>
+</div>
+<div class="panel">
+  <h3>Student List</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Roll No</th>
+        <th>Class</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in students %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td>{{ s.roll_no }}</td>
+        <td>{{ s.clazz }}</td>
+        <td><span class="badge">Active</span></td>
+        <td>
+          <button class="btn-secondary btn-small" disabled>Edit</button>
+          <button class="btn-danger btn-small" disabled>Delete</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

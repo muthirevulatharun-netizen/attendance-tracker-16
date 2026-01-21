@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Reports</h1>
+  <p>Monthly summary and exports</p>
+</div>
+<div class="panel">
+  <form method="get" class="form inline-form">
+    <div class="field">
+      <label>Month</label>
+      <input type="month" name="month" value="{{ month }}" />
+    </div>
+    <div class="field" style="align-self: end">
+      <button type="submit" class="btn-primary">View Report</button>
+    </div>
+  </form>
+</div>
+<div class="panel">
+  <h3>Summary</h3>
+  <div class="cards-grid" style="margin-top: 16px">
+    <div class="card">
+      <h3>Total Days</h3>
+      <div class="stat">{{ summary.total_days }}</div>
+    </div>
+    <div class="card">
+      <h3>Total Periods Tracked</h3>
+      <div class="stat">{{ summary.total_slots }}</div>
+    </div>
+    <div class="card">
+      <h3>Average Attendance</h3>
+      <div class="stat">{{ summary.average_percent }}%</div>
+    </div>
+  </div>
+</div>
+<div class="panel">
+  <div class="toolbar">
+    <div class="chip"><i class="fa-solid fa-download"></i> Download Reports</div>
+    <div>
+      <a href="{{ url_for('export_report', format='pdf') }}" class="btn-secondary"><i class="fa-regular fa-file-pdf"></i> PDF</a>
+      <a href="{{ url_for('export_report', format='excel') }}" class="btn-secondary"><i class="fa-regular fa-file-excel"></i> Excel</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

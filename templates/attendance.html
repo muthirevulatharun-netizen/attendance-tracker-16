@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="attendance-mobile-header">
+  <div class="attendance-tabs">
+    <a
+      class="attendance-tab {% if tab_dates[0].isoformat() == selected_date %}active{% endif %}"
+      href="{{ url_for('attendance', date=tab_dates[0].isoformat()) }}"
+    >
+      Today
+    </a>
+    <a
+      class="attendance-tab {% if tab_dates[1].isoformat() == selected_date %}active{% endif %}"
+      href="{{ url_for('attendance', date=tab_dates[1].isoformat()) }}"
+    >
+      Tomorrow
+    </a>
+    <a
+      class="attendance-tab {% if tab_dates[2].isoformat() == selected_date %}active{% endif %}"
+      href="{{ url_for('attendance', date=tab_dates[2].isoformat()) }}"
+    >
+      {{ tab_dates[2].strftime("%A") }}
+    </a>
+  </div>
+</div>
+
+<div class="page-header" style="margin-top: 14px">
+  <h1>Attendance</h1>
+  <p>{{ selected_date }} • {{ weekday }}</p>
+</div>
+
+<div class="panel">
+  <form method="post" class="form">
+    <div class="toolbar">
+      <div class="field" style="margin: 0">
+        <label>Select Date</label>
+        <input type="date" name="date" value="{{ selected_date }}" />
+      </div>
+      <button type="button" class="btn-secondary" id="mark-all-present">
+        <i class="fa-solid fa-check-double"></i>
+        Mark all present
+      </button>
+    </div>
+
+    {% if slots %}
+    <div class="attendance-cards">
+      {% for slot in slots %}
+      {% set status = existing.get(slot.period) %}
+      {% set badge = "NA" if not status else ("P" if status == "present" else "A") %}
+      <div class="class-card">
+        <div class="status-badge {% if badge == 'P' %}p{% elif badge == 'A' %}a{% else %}na{% endif %}">
+          {{ badge }}
+        </div>
+
+        <div class="class-main">
+          <div class="class-title">{{ slot.subject }}</div>
+          <div class="class-meta">
+            {% if slot.teacher %}<div>{{ slot.teacher }}</div>{% endif %}
+            <div class="muted">Room No: {{ slot.room or "-" }}</div>
+          </div>
+          <div class="class-actions">
+            <label class="chip">
+              <input
+                type="radio"
+                name="status_{{ slot.period }}"
+                value="present"
+                {% if status == 'present' %}checked{% endif %}
+              />
+              P
+            </label>
+            <label class="chip">
+              <input
+                type="radio"
+                name="status_{{ slot.period }}"
+                value="absent"
+                {% if status == 'absent' %}checked{% endif %}
+              />
+              A
+            </label>
+            <label class="chip">
+              <input
+                type="radio"
+                name="status_{{ slot.period }}"
+                value=""
+                {% if not status %}checked{% endif %}
+              />
+              NA
+            </label>
+          </div>
+        </div>
+
+        <div class="class-time">
+          {{ period_times.get(slot.period, "") }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top: 16px; text-align: right">
+      <button type="submit" class="btn-primary">Save</button>
+    </div>
+    {% else %}
+    <p class="muted">No timetable slots for this day.</p>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}
+
