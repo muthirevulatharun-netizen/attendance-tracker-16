@@ -473,8 +473,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 10000))
     )
-<<<<<<< HEAD
-=======
 
->>>>>>> ed6fa0e9bb5687c8cda3f70c7689e1f7879d3cc0
 
