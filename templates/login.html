@@ -14,22 +14,32 @@
     <div class="login-card">
       <h1>Attendly</h1>
       <p class="muted">Sign in to manage attendance</p>
+      {% if error %}
+      <div style="background: #fee; color: #c33; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+        {{ error }}
+      </div>
+      {% endif %}
       <form method="post" class="form" style="margin-top: 18px">
         <div class="field">
-          <label>Email / Username</label>
-          <input type="text" name="email" placeholder="you@example.com" required />
+          <label>User ID</label>
+          <input type="text" name="email" placeholder="Enter User ID (e.g., 24691A32R8)" required style="text-transform: uppercase;" />
         </div>
         <div class="field">
           <label>Password</label>
           <input type="password" name="password" placeholder="••••••••" required />
         </div>
         <button type="submit" class="btn-primary">Login</button>
-        <p class="muted" style="text-align: center; margin-top: 8px">
-          New here?
-          <a href="#">Create an account</a>
-        </p>
+        <div style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-top: 15px; font-size: 12px; color: #555;">
+          <strong>User Credentials:</strong><br>
+          <strong style="color: #d32f2f;">Admin:</strong> User ID: <code>admin</code> | Password: <code>admin123</code> (Full Access)<br>
+          <strong>Students:</strong><br>
+          User ID: <code>24691A32R8</code> | Password: <code>passwordr8</code> (Surya Raju)<br>
+          User ID: <code>24691A32S8</code> | Password: <code>passwords8</code> (Tharun Reddy)<br>
+          User ID: <code>24691A32T7</code> | Password: <code>passwordt7</code> (Vamsi)
+        </div>
       </form>
     </div>
   </body>
 </html>
+
 

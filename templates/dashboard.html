@@ -26,12 +26,42 @@
 <div class="panel" style="margin-top: 20px">
   <div class="toolbar">
     <div>
-      <h3 style="margin: 0">Attendance Summary</h3>
+      <h3 style="margin: 0">Today's Attendance</h3>
       <p class="muted" style="margin: 4px 0 0">Date: {{ summary.date }} ({{ summary.weekday }})</p>
     </div>
-    <div class="chip"><i class="fa-solid fa-chart-line"></i> Chart placeholder</div>
+    <div class="chip"><i class="fa-solid fa-calendar-day"></i> Daily View</div>
   </div>
-  <div class="muted">Integrate Chart.js here to render attendance trend.</div>
+  <div class="muted">Today's attendance by timetable periods.</div>
+</div>
+
+<div class="panel" style="margin-top: 20px">
+  <div class="toolbar">
+    <div>
+      <h3 style="margin: 0">Overall Attendance Summary</h3>
+      <p class="muted" style="margin: 4px 0 0">All subjects combined</p>
+    </div>
+  </div>
+  <div class="cards-grid" style="margin-top: 16px">
+    <div class="card">
+      <h3>Total Classes</h3>
+      <div class="stat">{{ total_classes_all }}</div>
+    </div>
+    <div class="card">
+      <h3>Total Present</h3>
+      <div class="stat" style="color: var(--success)">{{ total_present_all }}</div>
+    </div>
+    <div class="card">
+      <h3>Total Absent</h3>
+      <div class="stat" style="color: var(--danger)">{{ total_absent_all }}</div>
+    </div>
+    <div class="card">
+      <h3>Overall Percentage</h3>
+      <div class="stat" style="{% if overall_percentage >= 75 %}color: var(--success){% elif overall_percentage >= 50 %}color: #ff9800{% else %}color: var(--danger){% endif %}">
+        {{ overall_percentage }}%
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
+
 

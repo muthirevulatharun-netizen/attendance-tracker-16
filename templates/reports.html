@@ -16,22 +16,72 @@
   </form>
 </div>
 <div class="panel">
-  <h3>Summary</h3>
+  <h3>Overall Summary</h3>
   <div class="cards-grid" style="margin-top: 16px">
     <div class="card">
-      <h3>Total Days</h3>
-      <div class="stat">{{ summary.total_days }}</div>
+      <h3>Total Classes</h3>
+      <div class="stat">{{ total_classes }}</div>
     </div>
     <div class="card">
-      <h3>Total Periods Tracked</h3>
-      <div class="stat">{{ summary.total_slots }}</div>
+      <h3>Present</h3>
+      <div class="stat" style="color: var(--success)">{{ total_present }}</div>
     </div>
     <div class="card">
-      <h3>Average Attendance</h3>
-      <div class="stat">{{ summary.average_percent }}%</div>
+      <h3>Absent</h3>
+      <div class="stat" style="color: var(--danger)">{{ total_classes - total_present }}</div>
+    </div>
+    <div class="card">
+      <h3>Overall Attendance</h3>
+      <div class="stat">{{ overall_percentage }}%</div>
     </div>
   </div>
 </div>
+
+{% if subjects_data %}
+<div class="panel" style="margin-top: 20px">
+  <h3>Subject-wise Attendance</h3>
+  <div style="overflow-x: auto; margin-top: 16px">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Present</th>
+          <th>Total</th>
+          <th>Absent</th>
+          <th>Percentage</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for subject in subjects_data %}
+        {% set absent = subject.total - subject.present %}
+        {% set percentage = (subject.present / subject.total * 100) | round(2) if subject.total > 0 else 0 %}
+        <tr>
+          <td><strong>{{ subject.subject }}</strong></td>
+          <td style="color: var(--success)">{{ subject.present }}</td>
+          <td>{{ subject.total }}</td>
+          <td style="color: var(--danger)">{{ absent }}</td>
+          <td>
+            <span style="font-weight: bold; {% if percentage >= 75 %}color: var(--success){% elif percentage >= 50 %}color: #ff9800{% else %}color: var(--danger){% endif %}">
+              {{ percentage }}%
+            </span>
+          </td>
+          <td>
+            {% if percentage >= 75 %}
+            <span class="chip" style="background: #e8f5e9; color: #2e7d32;"><i class="fa-solid fa-check-circle"></i> Good</span>
+            {% elif percentage >= 50 %}
+            <span class="chip" style="background: #fff3e0; color: #f57c00;"><i class="fa-solid fa-exclamation-circle"></i> Warning</span>
+            {% else %}
+            <span class="chip" style="background: #ffebee; color: #c62828;"><i class="fa-solid fa-times-circle"></i> Low</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
 <div class="panel">
   <div class="toolbar">
     <div class="chip"><i class="fa-solid fa-download"></i> Download Reports</div>
@@ -42,4 +92,5 @@
   </div>
 </div>
 {% endblock %}
+
 
