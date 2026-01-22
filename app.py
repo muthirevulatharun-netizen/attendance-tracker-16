@@ -1,6 +1,4 @@
 from datetime import date, datetime, timedelta
-
-rom datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 
