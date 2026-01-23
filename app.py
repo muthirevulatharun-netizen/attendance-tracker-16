@@ -66,10 +66,10 @@ students_data = {
 subject_attendance = {
     "24691A32R8": [
         {"subject": "Aptitude","course code":"aps","present": 3, "total": 3},
-        {"subject": "soft skills","course code":"ss" "present": 3, "total": 3},
+        {"subject": "soft skills","course code":"ss","present": 3, "total": 3},
         {"subject": "Technical training","course code":"TT", "present": 8, "total": 10},
-        {"subject": "Discrete Mathematical Structures","course code":"23MAT108" "present": 12, "total": 12},
-        {"subject": "environmental science","course code":"23CHE901" "present": 7, "total": 9},
+        {"subject": "Discrete Mathematical Structures","course code":"23MAT108","present": 12, "total": 12},
+        {"subject": "environmental science","course code":"23CHE901", "present": 7, "total": 9},
         {"subject": "Introduction To Data Science","course code":"23CSD105","present": 12, "total": 13},
         {"subject": "Data Engineering","course code":"23CSD106", "present": 12, "total": 13},
         {"subject": "Data Science Laboratory","course code":"23CSD203", "present": 15, "total": 18},
