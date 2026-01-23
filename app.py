@@ -126,15 +126,15 @@ timetable = {
     ],
     "Tue": [
         {"period": 1, "subject": "23IIC5M03", "room": "SRB221", "teacher": "Mr. A Kalyan Kumar"},
-        {"period": 2, "subject": "TT", "room": "SRB221", "teacher": ""},
+        {"period": 2, "subject": "TT", "room": "SRB221", "teacher": "Mrs. Anuradha Prudhivi"},
         {"period": 3, "subject": "TT", "room": "SRB221", "teacher": "Mrs. Anuradha Prudhivi"},
         {"period": 4, "subject": "23CSD603", "room": "SRB221", "teacher": ""},
         {"period": 5, "subject": "SRB219", "room": "SRB219", "teacher": "NBV / AA / RD"},
     ],
     "Wed": [
-        {"period": 1, "subject": "23CSD204", "room": "SRB221", "teacher": ""},
-        {"period": 2, "subject": "23CSD204", "room": "SRB221", "teacher": ""},
-        {"period": 3, "subject": "23CSD204", "room": "SRB221", "teacher": ""},
+        {"period": 1, "subject": "23CSD204", "room": "SRB221", "teacher": "Dr. K. Nirmala Devi"},
+        {"period": 2, "subject": "23CSD204", "room": "SRB221", "teacher": "Dr. K. Nirmala Devi"},
+        {"period": 3, "subject": "23CSD204", "room": "SRB221", "teacher": "Dr. K. Nirmala Devi"},
         {"period": 4, "subject": "23CSD105", "room": "SRB221", "teacher": "Mr. Rantu Das"},
         {"period": 5, "subject": "23CHE901", "room": "SRB221", "teacher": "Dr. K. V. Vivekananda"},
         {"period": 6, "subject": "23CSD103", "room": "SRB221", "teacher": "Dr. P. Ramanathan"},
@@ -474,8 +474,4 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 10000))
     )
-<<<<<<< HEAD
-
-=======
->>>>>>> 60514f1 (Fix app.py syntax error)
 
