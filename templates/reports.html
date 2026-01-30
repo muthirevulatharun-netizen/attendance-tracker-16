@@ -55,7 +55,7 @@
       <tbody>
         {% for subject in subjects_data %}
         {% set absent = subject.total - subject.present %}
-        {% set percentage = (subject.present / subject.total * 100) | round(2) if subject.total > 0 else 0 %}
+        {% set percentage = (subject.present / subject.total * 100) | round(1) if subject.total > 0 else 0 %}
         <tr>
           <td><strong>{{ subject.subject }}</strong></td>
           <td style="color: var(--success)">{{ subject.present }}</td>

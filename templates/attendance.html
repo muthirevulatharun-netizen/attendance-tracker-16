@@ -29,15 +29,19 @@
 </div>
 
 <div class="panel">
-  <form method="post" class="form">
+  <form method="post" class="form" id="attendance-form">
     <div class="toolbar">
       <div class="field" style="margin: 0">
         <label>Select Date</label>
-        <input type="date" name="date" value="{{ selected_date }}" />
+        <input type="date" name="date" value="{{ selected_date }}" id="date-picker" />
       </div>
       <button type="button" class="btn-secondary" id="mark-all-present">
         <i class="fa-solid fa-check-double"></i>
         Mark all present
+      </button>
+      <button type="button" class="btn-secondary" id="mark-all-absent">
+        <i class="fa-solid fa-times-circle"></i>
+        Mark all absent
       </button>
     </div>
 
@@ -103,6 +107,30 @@
     {% endif %}
   </form>
 </div>
+
+<script>
+  // Auto-navigate when date is selected
+  document.getElementById('date-picker').addEventListener('change', function() {
+    const selectedDate = this.value; // YYYY-MM-DD format
+    if (selectedDate) {
+      window.location.href = "{{ url_for('attendance') }}" + "?date=" + selectedDate;
+    }
+  });
+
+  document.getElementById('mark-all-present').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.querySelectorAll('input[type="radio"][value="present"]').forEach(radio => {
+      radio.checked = true;
+    });
+  });
+
+  document.getElementById('mark-all-absent').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.querySelectorAll('input[type="radio"][value="absent"]').forEach(radio => {
+      radio.checked = true;
+    });
+  });
+</script>
 {% endblock %}
 
 

@@ -1,3 +1,4 @@
+
 from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -65,7 +66,7 @@ students_data = {
 # Format: {user_id: [{"subject": str, "present": int, "total": int}]}
 subject_attendance = {
     "24691A32R8": [
-        {"subject": "Aptitude","course code":"aps","present": 3, "total": 3},
+        {"subject": "Aptitude","course code":"aps","present": 4, "total": 3},
         {"subject": "soft skills","course code":"ss","present": 3, "total": 3},
         {"subject": "Technical training","course code":"TT", "present": 8, "total": 10},
         {"subject": "Discrete Mathematical Structures","course code":"23MAT108","present": 12, "total": 12},
@@ -80,20 +81,20 @@ subject_attendance = {
         {"subject": "devops","course code":"23CSD603", "present": 11, "total": 13},
     ],
     "24691A32S8": [
-        {"subject": "Aptitude","course code":"aps", "present": 3, "total": 3},
+        {"subject": "Aptitude","course code":"aps", "present": 4, "total": 4},
         {"subject": "soft skills","course code":"ss", "present": 2, "total": 3},
-        {"subject": "Technical training","course code":"TT", "present": 8, "total": 10},
+        {"subject": "Technical training","course code":"TT", "present": 12, "total": 14},
         {"subject": "Discrete Mathematical Structures","course code":"23MAT108", "present": 9, "total": 12},
-        {"subject": "environmental science","course code":"23CHE901", "present": 7, "total": 9},
-        {"subject": "Digital Logic and computer organization","course code":"23CSD103", "present": 6, "total": 8},
-        {"subject": "Introduction To Data Science","course code":"23CSD105", "present": 9, "total": 13},
-        {"subject": "Data Engineering","course code":"23CSD106", "present": 10, "total": 13},
+        {"subject": "environmental science","course code":"23CHE901", "present": 10, "total": 12},
+        {"subject": "Digital Logic and computer organization","course code":"23CSD103", "present": 7, "total": 14},
+        {"subject": "Introduction To Data Science","course code":"23CSD105", "present": 12, "total": 17},
+        {"subject": "Data Engineering","course code":"23CSD106", "present": 12, "total": 15},
         {"subject": "Data Science Laboratory","course code":"23CSD203", "present": 12, "total": 18},
-        {"subject": "Data engineering laboratory","course code":"23CSD204", "present": 9, "total": 15},
-        {"subject": "Product engineering and design thinking","course code":"23IIC5M03", "present": 7, "total": 10},
-        {"subject": "Understanding incubation entreprenurship","course code":"23IIC5M06", "present": 8, "total": 9},
-        {"subject": "Code Tantra","course code":"CT", "present": 8, "total": 8},
-        {"subject": "Devops","course code":"23CSD603", "present": 8, "total": 13},
+        {"subject": "Data engineering laboratory","course code":"23CSD204", "present": 12, "total": 18},
+        {"subject": "Product engineering and design thinking","course code":"23IIC5M03", "present": 9, "total": 12},
+        {"subject": "Understanding incubation entreprenurship","course code":"23IIC5M06", "present": 10, "total": 11},
+        {"subject": "Code Tantra","course code":"CT", "present": 10, "total": 10},
+        {"subject": "Devops","course code":"23CSD603", "present": 11, "total": 16},
     ],
     "24691A32T7": [
         {"subject": "Aptitude","course code":"", "present": 2, "total": 3},
@@ -161,6 +162,7 @@ timetable = {
         {"period": 2, "subject": "23IIC5M03", "room": "SRB221", "teacher": "Mr. A Kalyan Kumar"},
         {"period": 3, "subject": "23CSD106", "room": "SRB221", "teacher": "Dr. K. Nirmala Devi"},
     ],
+    
 }
 
 # Period timings (start - end)
@@ -177,6 +179,116 @@ period_times = {
 
 # attendance_map[user_id][yyyy-mm-dd] = {period: "present"|"absent"}
 attendance_map = {}
+def rebuild_subject_attendance(user_id):
+    """Rebuild subject attendance from attendance_map while preserving initial data and order"""
+    # Create a mapping of course code to subject info from existing subject_attendance
+    course_code_to_subject = {}
+    initial_data = {}
+    initial_order = []  # Preserve original order
+    
+    if user_id in subject_attendance:
+        for entry in subject_attendance[user_id]:
+            code = entry.get("course code", "").strip()
+            subject_name = entry.get("subject", "")
+            
+            # Store even if code is empty (for subjects like Aptitude, soft skills, Code Tantra)
+            if code:
+                course_code_to_subject[code] = subject_name
+                initial_data[code] = {
+                    "present": entry["present"],
+                    "total": entry["total"]
+                }
+                initial_order.append(code)
+            else:
+                # Use subject name as key if no course code
+                course_code_to_subject[subject_name] = subject_name
+                initial_data[subject_name] = {
+                    "present": entry["present"],
+                    "total": entry["total"]
+                }
+                initial_order.append(subject_name)
+    
+    # Also build from timetable to get any missing codes
+    for day_slots in timetable.values():
+        for slot in day_slots:
+            code = slot["subject"].upper()
+            if code not in course_code_to_subject and code not in ["MM", "SRB219"]:
+                course_code_to_subject[code] = code
+    
+    # Calculate NEW attendance counts from attendance_map (to add to existing)
+    new_attendance = {}
+    user_attendance = attendance_map.get(user_id, {})
+
+    for date_key, periods in user_attendance.items():
+        weekday = _weekday_key(date_key)
+        slots = timetable.get(weekday, [])
+
+        period_subject_map = {}
+        for slot in slots:
+            period_subject_map[int(slot["period"])] = slot["subject"].upper()
+
+        for period, status in periods.items():
+            # Ensure period is int for lookup
+            period_int = int(period) if isinstance(period, str) else period
+            subject_code = period_subject_map.get(period_int)
+            if not subject_code or subject_code in ["MM", "SRB219"]:
+                continue
+
+            if subject_code not in new_attendance:
+                new_attendance[subject_code] = {"present": 0, "total": 0}
+
+            new_attendance[subject_code]["total"] += 1
+            if status == "present":
+                new_attendance[subject_code]["present"] += 1
+
+    # Merge initial data with new attendance data
+    merged_subjects = {}
+    
+    # Start with initial data
+    for code, data in initial_data.items():
+        merged_subjects[code] = {
+            "subject": course_code_to_subject.get(code, code),
+            "present": data["present"],
+            "total": data["total"]
+        }
+    
+    # Add new attendance on top
+    for code, data in new_attendance.items():
+        if code in merged_subjects:
+            merged_subjects[code]["present"] += data["present"]
+            merged_subjects[code]["total"] += data["total"]
+        else:
+            merged_subjects[code] = {
+                "subject": course_code_to_subject.get(code, code),
+                "present": data["present"],
+                "total": data["total"]
+            }
+    
+    # Convert to list format preserving original order
+    result = []
+    # First add subjects in their original order
+    for code in initial_order:
+        if code in merged_subjects:
+            data = merged_subjects[code]
+            result.append({
+                "subject": data["subject"],
+                "course code": code if code and code != data["subject"] else "",
+                "present": data["present"],
+                "total": data["total"]
+            })
+    
+    # Then add any new subjects that weren't in initial data
+    for code, data in merged_subjects.items():
+        if code not in initial_order:
+            result.append({
+                "subject": data["subject"],
+                "course code": code if code and code != data["subject"] else "",
+                "present": data["present"],
+                "total": data["total"]
+            })
+    
+    subject_attendance[user_id] = result
+
 
 
 def require_login():
@@ -293,7 +405,34 @@ def students_page():
         name = request.form.get("name")
         roll = request.form.get("roll_no")
         clazz = request.form.get("clazz")
+        password = request.form.get("password", "").strip()
+        
         if name and roll and clazz:
+            # If password provided, create new user account
+            if password:
+                # Create user account with roll_no as user_id
+                if roll not in users:
+                    users[roll] = {
+                        "password_hash": generate_password_hash(password),
+                        "name": name,
+                        "role": "student"
+                    }
+                    # Create initial subject_attendance with all subjects at 0/0
+                    # Copy subject structure from existing student
+                    template_subjects = subject_attendance.get("24691A32R8", [])
+                    subject_attendance[roll] = [
+                        {
+                            "subject": subj["subject"],
+                            "course code": subj.get("course code", ""),
+                            "present": 0,
+                            "total": 0
+                        }
+                        for subj in template_subjects
+                    ]
+                    # Create empty students data for new user
+                    students_data[roll] = []
+            
+            # Add student record
             if target_user_id not in students_data:
                 students_data[target_user_id] = []
             user_students = students_data.get(target_user_id, [])
@@ -324,6 +463,9 @@ def attendance():
         attendance_map[target_user_id] = {}
 
     selected_date = request.args.get("date") or date.today().isoformat()
+    # Convert DD/MM/YYYY to YYYY-MM-DD if needed
+    selected_date = _normalize_date_format(selected_date)
+    
     weekday_key = _weekday_key(selected_date)
     slots = timetable.get(weekday_key, [])
 
@@ -340,18 +482,29 @@ def attendance():
         if is_admin():
             target_user_id = request.form.get("user_id") or target_user_id
         
-        selected_date = request.form.get("date") or selected_date
+        # Get the date from form and normalize it
+        form_date = request.form.get("date", "").strip()
+        if form_date:
+            selected_date = _normalize_date_format(form_date)
+        
         weekday_key = _weekday_key(selected_date)
         slots = timetable.get(weekday_key, [])
+        
+        # Get valid periods for this day
+        valid_periods = {slot['period'] for slot in slots}
+        
         status_map = {}
         for slot in slots:
             raw = request.form.get(f"status_{slot['period']}")
             state = raw if raw in ("present", "absent") else None
             if state:
-                status_map[slot["period"]] = state
+                status_map[int(slot["period"])] = state  # Store period as integer
+        
         if target_user_id not in attendance_map:
             attendance_map[target_user_id] = {}
         attendance_map[target_user_id][selected_date] = status_map
+        # Rebuild subject attendance from attendance_map to update reports
+        rebuild_subject_attendance(target_user_id)
         redirect_url = url_for("attendance", date=selected_date)
         if is_admin():
             redirect_url += f"&user_id={target_user_id}"
@@ -381,6 +534,7 @@ def reports():
     target_user_id = get_target_user_id()
     if not target_user_id:
         return redirect(url_for("login"))
+    # Don't rebuild here - only rebuild when attendance is saved
     month = request.args.get("month") or date.today().strftime("%Y-%m")
     summary = _monthly_summary(month, target_user_id)
     # Get subject-wise attendance data
@@ -467,11 +621,53 @@ def _safe_date(date_str: str) -> date:
         return date.today()
 
 
+def _normalize_date_format(date_str: str) -> str:
+    """Convert DD/MM/YYYY or other formats to YYYY-MM-DD format"""
+    if not date_str:
+        return date.today().isoformat()
+    
+    date_str = str(date_str).strip()
+    
+    if not date_str:
+        return date.today().isoformat()
+    
+    # Try ISO format first (YYYY-MM-DD)
+    try:
+        datetime.fromisoformat(date_str)
+        return date_str
+    except:
+        pass
+    
+    # Try DD/MM/YYYY format
+    try:
+        d = datetime.strptime(date_str, "%d/%m/%Y")
+        result = d.strftime("%Y-%m-%d")
+        return result
+    except:
+        pass
+    
+    # Try DD-MM-YYYY format  
+    try:
+        d = datetime.strptime(date_str, "%d-%m-%Y")
+        return d.strftime("%Y-%m-%d")
+    except:
+        pass
+    
+    # Try M/D/YYYY format
+    try:
+        d = datetime.strptime(date_str, "%m/%d/%Y")
+        return d.strftime("%Y-%m-%d")
+    except:
+        pass
+    
+    # If all else fails, return today's date
+    return date.today().isoformat()
+
+
 import os
 
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 10000))
-    )
-
+    ) 
