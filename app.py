@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import json
 import os
+import traceback
 
 app = Flask(__name__)
 app.secret_key = "change-me"  # replace for production
@@ -74,6 +75,20 @@ def init_db():
 
 # Initialize database on startup
 init_db()
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log full traceback so it shows up in deployment logs
+    tb = traceback.format_exc()
+    print("[ERROR] Unhandled exception:\n" + tb)
+
+    # In debug mode, show full traceback in response (helpful during development)
+    if app.debug:
+        return f"<pre>{tb}</pre>", 500
+
+    # Otherwise show a generic message
+    return "Internal Server Error", 500
+
 
 @app.context_processor
 def inject_admin_context():
@@ -257,6 +272,9 @@ def save_subject_attendance(user_id, subjects_data):
 
 # Load subject attendance data on startup
 subject_attendance = load_subject_attendance()
+
+# Load daily attendance data on startup
+attendance_map = load_attendance_map()
 
 # If database is empty, populate with initial data
 if not subject_attendance:
@@ -496,31 +514,38 @@ def logout():
 
 @app.route("/dashboard")
 def dashboard():
-    if not require_login():
-        return redirect(url_for("login"))
-    target_user_id = get_target_user_id()
-    if not target_user_id:
-        return redirect(url_for("login"))
-    summary = _attendance_summary(date.today(), target_user_id)
-    
-    # Get overall statistics from subject attendance data
-    subjects_data = subject_attendance.get(target_user_id, [])
-    total_present_all = sum(s["present"] for s in subjects_data)
-    total_classes_all = sum(s["total"] for s in subjects_data)
-    overall_percentage = round((total_present_all / total_classes_all * 100), 2) if total_classes_all > 0 else 0
-    total_absent_all = total_classes_all - total_present_all
-    
-    student_users = [{"id": uid, "name": u["name"]} for uid, u in users.items() if u.get("role") == "student"]
-    return render_template("dashboard.html", 
-                         user=session.get("user"), 
-                         summary=summary,
-                         total_present_all=total_present_all,
-                         total_classes_all=total_classes_all,
-                         total_absent_all=total_absent_all,
-                         overall_percentage=overall_percentage,
-                         is_admin=is_admin(),
-                         student_users=student_users,
-                         selected_user_id=target_user_id)
+    try:
+        if not require_login():
+            return redirect(url_for("login"))
+        target_user_id = get_target_user_id()
+        if not target_user_id:
+            return redirect(url_for("login"))
+        summary = _attendance_summary(date.today(), target_user_id)
+        
+        # Get overall statistics from subject attendance data
+        subjects_data = subject_attendance.get(target_user_id, [])
+        total_present_all = sum(s["present"] for s in subjects_data)
+        total_classes_all = sum(s["total"] for s in subjects_data)
+        overall_percentage = round((total_present_all / total_classes_all * 100), 2) if total_classes_all > 0 else 0
+        total_absent_all = total_classes_all - total_present_all
+        
+        student_users = [{"id": uid, "name": u["name"]} for uid, u in users.items() if u.get("role") == "student"]
+        return render_template("dashboard.html", 
+                             user=session.get("user"), 
+                             summary=summary,
+                             total_present_all=total_present_all,
+                             total_classes_all=total_classes_all,
+                             total_absent_all=total_absent_all,
+                             overall_percentage=overall_percentage,
+                             is_admin=is_admin(),
+                             student_users=student_users,
+                             selected_user_id=target_user_id)
+    except Exception as e:
+        tb = traceback.format_exc()
+        print("[ERROR] Dashboard exception:\n" + tb)
+        if app.debug:
+            return f"<pre>{tb}</pre>", 500
+        return "Internal Server Error", 500
 
 
 @app.route("/students", methods=["GET", "POST"])
@@ -814,7 +839,11 @@ def _normalize_date_format(date_str: str) -> str:
 import os
 
 if __name__ == "__main__":
+    # Use debug mode only when explicitly requested (e.g. FLASK_DEBUG=1).
+    debug_mode = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
     app.run(
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 10000))
-    ) 
+        port=int(os.environ.get("PORT", 10000)),
+        debug=debug_mode,
+        use_reloader=debug_mode
+    )
