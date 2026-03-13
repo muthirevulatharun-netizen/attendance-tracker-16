@@ -10,33 +10,67 @@ app = Flask(__name__)
 app.secret_key = "change-me"  # replace for production
 
 # Database setup
-DATABASE = 'attendance.db'
+# Use an environment variable if available (e.g. Render or other platforms)
+# Fallback to a writable directory (current working directory or /tmp)
+import tempfile
+
+def get_db_path():
+    # Preferred: explicit env var
+    env_path = os.environ.get("ATTENDANCE_DB")
+    if env_path:
+        return env_path
+
+    # Try current working directory
+    default_path = os.path.join(os.getcwd(), "attendance.db")
+    try:
+        os.makedirs(os.path.dirname(default_path) or ".", exist_ok=True)
+        with open(default_path, "a"):
+            pass
+        return default_path
+    except Exception:
+        # Fallback to system temp directory
+        tmp = os.path.join(tempfile.gettempdir(), "attendance.db")
+        try:
+            with open(tmp, "a"):
+                pass
+            return tmp
+        except Exception:
+            # Last resort: use default path (may fail)
+            return default_path
+
+DATABASE = get_db_path()
+
 
 def get_db():
     db = sqlite3.connect(DATABASE)
     db.row_factory = sqlite3.Row
     return db
 
+
 def init_db():
-    with get_db() as db:
-        db.execute('''CREATE TABLE IF NOT EXISTS attendance (
-            id INTEGER PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            date TEXT NOT NULL,
-            period INTEGER NOT NULL,
-            status TEXT NOT NULL,
-            UNIQUE(user_id, date, period)
-        )''')
-        db.execute('''CREATE TABLE IF NOT EXISTS subject_attendance (
-            id INTEGER PRIMARY KEY,
-            user_id TEXT NOT NULL,
-            subject TEXT NOT NULL,
-            course_code TEXT,
-            present INTEGER NOT NULL,
-            total INTEGER NOT NULL,
-            UNIQUE(user_id, subject, course_code)
-        )''')
-        db.commit()
+    try:
+        with get_db() as db:
+            db.execute('''CREATE TABLE IF NOT EXISTS attendance (
+                id INTEGER PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                date TEXT NOT NULL,
+                period INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                UNIQUE(user_id, date, period)
+            )''')
+            db.execute('''CREATE TABLE IF NOT EXISTS subject_attendance (
+                id INTEGER PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                course_code TEXT,
+                present INTEGER NOT NULL,
+                total INTEGER NOT NULL,
+                UNIQUE(user_id, subject, course_code)
+            )''')
+            db.commit()
+    except Exception as e:
+        print(f"[ERROR] Failed to initialize database at '{DATABASE}': {e}")
+
 
 # Initialize database on startup
 init_db()
