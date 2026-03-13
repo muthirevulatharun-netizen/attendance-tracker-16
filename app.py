@@ -2,9 +2,44 @@
 from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
+import sqlite3
+import json
+import os
 
 app = Flask(__name__)
 app.secret_key = "change-me"  # replace for production
+
+# Database setup
+DATABASE = 'attendance.db'
+
+def get_db():
+    db = sqlite3.connect(DATABASE)
+    db.row_factory = sqlite3.Row
+    return db
+
+def init_db():
+    with get_db() as db:
+        db.execute('''CREATE TABLE IF NOT EXISTS attendance (
+            id INTEGER PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            period INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            UNIQUE(user_id, date, period)
+        )''')
+        db.execute('''CREATE TABLE IF NOT EXISTS subject_attendance (
+            id INTEGER PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            course_code TEXT,
+            present INTEGER NOT NULL,
+            total INTEGER NOT NULL,
+            UNIQUE(user_id, subject, course_code)
+        )''')
+        db.commit()
+
+# Initialize database on startup
+init_db()
 
 @app.context_processor
 def inject_admin_context():
@@ -62,58 +97,8 @@ students_data = {
     ],
 }
 
-# Subject-wise attendance data per user_id
-# Format: {user_id: [{"subject": str, "present": int, "total": int}]}
-subject_attendance = {
-    "24691A32R8": [
-        {"subject": "Aptitude","course code":"aps","present": 9, "total": 9},
-        {"subject": "soft skills","course code":"ss","present": 5, "total": 5},
-        {"subject": "Technical training","course code":"TT", "present": 22, "total": 24},
-        {"subject": "Discrete Mathematical Structures","course code":"23MAT108","present": 27, "total": 31},
-        {"subject": "environmental science","course code":"23CHE901", "present": 15, "total": 21},
-        {"subject": "Digital Logic and computer organization","course code":"23CSD103", "present": 21, "total": 25},
-        {"subject": "Introduction To Data Science","course code":"23CSD105","present": 26, "total": 29},
-        {"subject": "Data Engineering","course code":"23CSD106", "present": 26, "total": 25},
-        {"subject": "Data Science Laboratory","course code":"23CSD203", "present": 30, "total": 33},
-        {"subject": "Data engineering laboratory","course code":"23CSD204", "present": 30, "total": 30},
-        {"subject": "Product engineering and design thinking","course code":"23IIC5M03", "present": 20, "total": 22},
-        {"subject": "Understanding incubation entreprenurship","course code":"23IIC5M06", "present": 18, "total": 21},
-        {"subject": "Code Tantra","course code":"CT", "present": 20, "total": 20},
-        {"subject": "devops","course code":"23CSD603", "present": 29, "total": 31},
-    ],
-    "24691A32S8": [
-        {"subject": "Aptitude","course code":"aps", "present": 9, "total": 9},
-        {"subject": "soft skills","course code":"ss", "present": 4, "total": 5},
-        {"subject": "Technical training","course code":"TT", "present": 22, "total": 24},
-        {"subject": "Discrete Mathematical Structures","course code":"23MAT108", "present": 24, "total": 31},
-        {"subject": "environmental science","course code":"23CHE901", "present": 18, "total": 21},
-        {"subject": "Digital Logic and computer organization","course code":"23CSD103", "present": 20, "total": 25},
-        {"subject": "Introduction To Data Science","course code":"23CSD105", "present": 25, "total": 29},
-        {"subject": "Data Engineering","course code":"23CSD106", "present": 20, "total": 25},
-        {"subject": "Data Science Laboratory","course code":"23CSD203", "present": 24, "total": 33},
-        {"subject": "Data engineering laboratory","course code":"23CSD204", "present": 24, "total": 30},
-        {"subject": "Product engineering and design thinking","course code":"23IIC5M03", "present": 19, "total": 22},
-        {"subject": "Understanding incubation entreprenurship","course code":"23IIC5M06", "present": 17, "total": 21},
-        {"subject": "Code Tantra","course code":"CT", "present": 18, "total": 20},
-        {"subject": "Devops","course code":"23CSD603", "present": 26, "total": 31},
-    ],
-    "24691A32T7": [
-        {"subject": "Aptitude","course code":"", "present": 7, "total": 9},
-        {"subject": "soft skills","course code":"", "present": 4, "total": 5},
-        {"subject": "Technical training","course code":"TT", "present": 22, "total": 24},
-        {"subject": "Discrete Mathematical Structures","course code":"23MAT108", "present": 24, "total": 31},
-        {"subject": "environmental science","course code":"23CHE901", "present": 17, "total": 21},
-        {"subject": "Digital Logic and computer organization","course code":"23CSD103", "present": 21, "total": 25},
-        {"subject": "Introduction To Data Science","course code":"23CSD105", "present": 27, "total": 29},
-        {"subject": "Data Engineering","course code":"23CSD106","present": 18, "total": 25},
-        {"subject": "Data Science Laboratory","course code":"23CSD203", "present": 27, "total": 33},
-        {"subject": "Data engineering laboratory","course code":"23CSD204", "present": 27, "total": 30},
-        {"subject": "Product engineering and design thinking", "course code":"23IIC5M03","present": 17, "total": 22},
-        {"subject": "Understanding incubation entreprenurship","course code":"23IIC5M06", "present": 16, "total": 21},
-        {"subject": "Code Tantra","course code":"", "present": 18, "total": 20},
-        {"subject": "devops","course code":"23CSD603", "present": 27, "total": 31},
-    ]
-}
+# Subject-wise attendance data per user_id is now loaded from database
+# Format: {user_id: [{"subject": str, "course code": str, "present": int, "total": int}]}
 
 # Timetable derived from the provided weekly schedule.
 timetable = {
@@ -130,7 +115,7 @@ timetable = {
         {"period": 1, "subject": "23IIC5M03", "room": "SRB221", "teacher": "Mr. A Kalyan Kumar"},
         {"period": 2, "subject": "TT", "room": "SRB221", "teacher": "Mrs. Anuradha Prudhivi"},
         {"period": 3, "subject": "TT", "room": "SRB221", "teacher": "Mrs. Anuradha Prudhivi"},
-        {"period": 4, "subject": "23CSD603", "room": "SRB221", "teacher": ""},
+        {"period": 4, "subject": "SRB219", "room": "SRB219", "teacher": "NBV/AA/RD"},
         {"period": 5, "subject": "SRB219", "room": "SRB219", "teacher": "NBV / AA / RD"},
     ],
     "Wed": [
@@ -140,7 +125,6 @@ timetable = {
         {"period": 4, "subject": "23CSD105", "room": "SRB221", "teacher": "Mr. Rantu Das"},
         {"period": 5, "subject": "23CHE901", "room": "SRB221", "teacher": "Dr. K. V. Vivekananda"},
         {"period": 6, "subject": "23CSD103", "room": "SRB221", "teacher": "Dr. P. Ramanathan"},
-        {"period": 7, "subject": "MM", "room": "SRB221", "teacher": "NO teacher"},
     ],
     "Thu": [
         {"period": 1, "subject": "23CSD105", "room": "SRB221", "teacher": "Mr. Rantu Das"},
@@ -179,7 +163,123 @@ period_times = {
 }
 
 # attendance_map[user_id][yyyy-mm-dd] = {period: "present"|"absent"}
-attendance_map = {}
+# Now loaded from database
+def load_attendance_map():
+    """Load attendance data from database into memory"""
+    attendance_map = {}
+    with get_db() as db:
+        rows = db.execute('SELECT user_id, date, period, status FROM attendance').fetchall()
+        for row in rows:
+            user_id = row['user_id']
+            date_key = row['date']
+            period = row['period']
+            status = row['status']
+            
+            if user_id not in attendance_map:
+                attendance_map[user_id] = {}
+            if date_key not in attendance_map[user_id]:
+                attendance_map[user_id][date_key] = {}
+            attendance_map[user_id][date_key][period] = status
+    return attendance_map
+
+def save_attendance(user_id, date_key, period, status):
+    """Save attendance record to database"""
+    with get_db() as db:
+        db.execute('''
+            INSERT OR REPLACE INTO attendance (user_id, date, period, status)
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, date_key, period, status))
+        db.commit()
+
+def load_subject_attendance():
+    """Load subject attendance data from database"""
+    subject_attendance = {}
+    with get_db() as db:
+        rows = db.execute('SELECT user_id, subject, course_code, present, total FROM subject_attendance').fetchall()
+        for row in rows:
+            user_id = row['user_id']
+            if user_id not in subject_attendance:
+                subject_attendance[user_id] = []
+            subject_attendance[user_id].append({
+                'subject': row['subject'],
+                'course code': row['course_code'] or '',
+                'present': row['present'],
+                'total': row['total']
+            })
+    return subject_attendance
+
+def save_subject_attendance(user_id, subjects_data):
+    """Save subject attendance data to database"""
+    with get_db() as db:
+        # Clear existing data for this user
+        db.execute('DELETE FROM subject_attendance WHERE user_id = ?', (user_id,))
+        # Insert new data
+        for subject in subjects_data:
+            db.execute('''
+                INSERT INTO subject_attendance (user_id, subject, course_code, present, total)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (user_id, subject['subject'], subject.get('course code', ''), subject['present'], subject['total']))
+        db.commit()
+
+# Load subject attendance data on startup
+subject_attendance = load_subject_attendance()
+
+# If database is empty, populate with initial data
+if not subject_attendance:
+    # Initial subject attendance data
+    initial_subject_attendance = {
+        "24691A32R8": [
+            {"subject": "Aptitude","course code":"aps","present": 9, "total": 9},
+            {"subject": "soft skills","course code":"ss","present": 5, "total": 5},
+            {"subject": "Technical training","course code":"TT", "present": 22, "total": 24},
+            {"subject": "Discrete Mathematical Structures","course code":"23MAT108","present": 27, "total": 31},
+            {"subject": "environmental science","course code":"23CHE901", "present": 15, "total": 21},
+            {"subject": "Digital Logic and computer organization","course code":"23CSD103", "present": 21, "total": 25},
+            {"subject": "Introduction To Data Science","course code":"23CSD105","present": 26, "total": 29},
+            {"subject": "Data Engineering","course code":"23CSD106", "present": 26, "total": 25},
+            {"subject": "Data Science Laboratory","course code":"23CSD203", "present": 30, "total": 33},
+            {"subject": "Data engineering laboratory","course code":"23CSD204", "present": 30, "total": 30},
+            {"subject": "Product engineering and design thinking","course code":"23IIC5M03", "present": 20, "total": 22},
+            {"subject": "Understanding incubation entreprenurship","course code":"23IIC5M06", "present": 18, "total": 21},
+            {"subject": "Code Tantra","course code":"CT", "present": 20, "total": 20},
+            {"subject": "devops","course code":"23CSD603", "present": 29, "total": 31},
+        ],
+        "24691A32S8": [
+            {"subject": "Aptitude","course code":"aps", "present": 9, "total": 9},
+            {"subject": "soft skills","course code":"ss", "present": 4, "total": 5},
+            {"subject": "Technical training","course code":"TT", "present": 22, "total": 24},
+            {"subject": "Discrete Mathematical Structures","course code":"23MAT108", "present": 24, "total": 31},
+            {"subject": "environmental science","course code":"23CHE901", "present": 18, "total": 21},
+            {"subject": "Digital Logic and computer organization","course code":"23CSD103", "present": 20, "total": 25},
+            {"subject": "Introduction To Data Science","course code":"23CSD105", "present": 25, "total": 29},
+            {"subject": "Data Engineering","course code":"23CSD106", "present": 20, "total": 25},
+            {"subject": "Data Science Laboratory","course code":"23CSD203", "present": 24, "total": 33},
+            {"subject": "Data engineering laboratory","course code":"23CSD204", "present": 24, "total": 30},
+            {"subject": "Product engineering and design thinking","course code":"23IIC5M03", "present": 19, "total": 22},
+            {"subject": "Understanding incubation entreprenurship","course code":"23IIC5M06", "present": 17, "total": 21},
+            {"subject": "Code Tantra","course code":"CT", "present": 18, "total": 20},
+            {"subject": "Devops","course code":"23CSD603", "present": 26, "total": 31},
+        ],
+        "24691A32T7": [
+            {"subject": "Aptitude","course code":"", "present": 7, "total": 9},
+            {"subject": "soft skills","course code":"", "present": 4, "total": 5},
+            {"subject": "Technical training","course code":"TT", "present": 22, "total": 24},
+            {"subject": "Discrete Mathematical Structures","course code":"23MAT108", "present": 24, "total": 31},
+            {"subject": "environmental science","course code":"23CHE901", "present": 17, "total": 21},
+            {"subject": "Digital Logic and computer organization","course code":"23CSD103", "present": 21, "total": 25},
+            {"subject": "Introduction To Data Science","course code":"23CSD105", "present": 27, "total": 29},
+            {"subject": "Data Engineering","course code":"23CSD106","present": 18, "total": 25},
+            {"subject": "Data Science Laboratory","course code":"23CSD203", "present": 27, "total": 33},
+            {"subject": "Data engineering laboratory","course code":"23CSD204", "present": 27, "total": 30},
+            {"subject": "Product engineering and design thinking", "course code":"23IIC5M03","present": 17, "total": 22},
+            {"subject": "Understanding incubation entreprenurship","course code":"23IIC5M06", "present": 16, "total": 21},
+            {"subject": "Code Tantra","course code":"", "present": 18, "total": 20},
+            {"subject": "devops","course code":"23CSD603", "present": 27, "total": 31},
+        ]
+    }
+    for user_id, subjects in initial_subject_attendance.items():
+        subject_attendance[user_id] = subjects
+        save_subject_attendance(user_id, subjects)
 def rebuild_subject_attendance(user_id):
     """Rebuild subject attendance from attendance_map while preserving initial data and order"""
     # Create a mapping of course code to subject info from existing subject_attendance
@@ -289,6 +389,8 @@ def rebuild_subject_attendance(user_id):
             })
     
     subject_attendance[user_id] = result
+    # Save to database
+    save_subject_attendance(user_id, result)
 
 
 
@@ -421,6 +523,9 @@ def students_page():
                     # Create initial subject_attendance with all subjects at 0/0
                     # Copy subject structure from existing student
                     template_subjects = subject_attendance.get("24691A32R8", [])
+                    if not template_subjects:
+                        # If no template, create empty
+                        template_subjects = []
                     subject_attendance[roll] = [
                         {
                             "subject": subj["subject"],
@@ -430,6 +535,8 @@ def students_page():
                         }
                         for subj in template_subjects
                     ]
+                    # Save to database
+                    save_subject_attendance(roll, subject_attendance[roll])
                     # Create empty students data for new user
                     students_data[roll] = []
             
@@ -504,6 +611,11 @@ def attendance():
         if target_user_id not in attendance_map:
             attendance_map[target_user_id] = {}
         attendance_map[target_user_id][selected_date] = status_map
+        
+        # Save to database
+        for period, status in status_map.items():
+            save_attendance(target_user_id, selected_date, period, status)
+        
         # Rebuild subject attendance from attendance_map to update reports
         rebuild_subject_attendance(target_user_id)
         redirect_url = url_for("attendance", date=selected_date)
