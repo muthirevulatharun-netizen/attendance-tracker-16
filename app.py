@@ -311,6 +311,7 @@ if not subject_attendance:
             {"subject": "Understanding incubation entreprenurship","course code":"23IIC5M06", "present": 18, "total": 22},
             {"subject": "Code Tantra","course code":"CT", "present": 22, "total": 22},
             {"subject": "Devops","course code":"23CSD603", "present": 26, "total": 31},
+            
         ],
         "24691A32T7": [
             {"subject": "Aptitude","course code":"", "present": 7, "total": 9},
